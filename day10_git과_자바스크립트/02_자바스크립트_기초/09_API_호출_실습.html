@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!--
+  실습 - fetch 로 GitHub API 호출하기
+
+  5일차에 파이썬 requests 로 했던 것을, 이번엔 브라우저에서 합니다.
+  08_콜백과_비동기.js 의 내용을 실제 화면에 적용한 버전입니다.
+
+  이 파일을 브라우저로 열고 F12 → Console 을 함께 보세요.
+  ※ 인터넷 연결이 필요합니다.
+-->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub 프로필 검색</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "맑은 고딕", sans-serif;
+      max-width: 560px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f7f8fa;
+      color: #222;
+      line-height: 1.6;
+    }
+    h1 { text-align: center; }
+    .hint { text-align: center; color: #6b7280; font-size: 14px; }
+    .input-row { display: flex; gap: 8px; margin: 20px 0; }
+    #idInput {
+      flex: 1; padding: 12px; font-size: 15px;
+      border: 1px solid #ccc; border-radius: 6px;
+    }
+    #searchBtn {
+      padding: 12px 20px; font-size: 15px; border: none;
+      border-radius: 6px; background: #3b82f6; color: #fff; cursor: pointer;
+    }
+    #searchBtn:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    #result {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 10px; padding: 20px; min-height: 80px;
+    }
+    .profile { display: flex; gap: 16px; align-items: center; }
+    .profile img { width: 80px; height: 80px; border-radius: 50%; }
+    .profile h2 { margin: 0 0 4px; font-size: 18px; }
+    .profile p { margin: 0; color: #6b7280; font-size: 14px; }
+    .stats { display: flex; gap: 20px; margin-top: 16px; text-align: center; }
+    .stats div { flex: 1; background: #f3f4f6; border-radius: 8px; padding: 10px; }
+    .stats strong { display: block; font-size: 20px; }
+    .stats span { font-size: 12px; color: #6b7280; }
+    .error { color: #dc2626; }
+    .loading { color: #6b7280; }
+  </style>
+</head>
+<body>
+
+  <h1>GitHub 프로필 검색</h1>
+  <p class="hint">아이디를 입력하세요 (예: octocat, torvalds, 오늘 만든 본인 계정)</p>
+
+  <div class="input-row">
+    <input type="text" id="idInput" placeholder="GitHub 아이디" value="octocat">
+    <button id="searchBtn">검색</button>
+  </div>
+
+  <div id="result">아직 검색하지 않았습니다.</div>
+
+
+  <script>
+    const idInput = document.querySelector("#idInput");
+    const searchBtn = document.querySelector("#searchBtn");
+    const result = document.querySelector("#result");
+
+
+    // =============================================================
+    // 1. 데이터 가져오기 - 화면 조작은 여기서 하지 않습니다
+    // =============================================================
+
+    // 함수 하나가 한 가지 일만 하게 나눕니다.
+    //   fetchUser  : 데이터를 가져온다
+    //   showUser   : 화면에 그린다
+    // 섞어 놓으면 나중에 고치기가 매우 어려워집니다.
+
+    async function fetchUser(username) {
+      // ① 응답이 올 때까지 기다림
+      const res = await fetch(`https://api.github.com/users/${username}`);
+
+      // ⚠️ fetch 는 404여도 에러를 던지지 않습니다. 직접 확인해야 합니다.
+      //    (파이썬 requests 도 마찬가지로 res.status_code 를 확인했었죠)
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error(`'${username}' 사용자를 찾을 수 없습니다.`);
+        }
+        if (res.status === 403) {
+          throw new Error("요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.");
+        }
+        throw new Error(`요청 실패 (상태 코드: ${res.status})`);
+      }
+
+      // ② 본문을 JSON으로 바꿀 때까지 기다림
+      return await res.json();
+    }
+
+
+    // =============================================================
+    // 2. 화면에 그리기
+    // =============================================================
+
+    function showUser(user) {
+      result.innerHTML = `
+        <div class="profile">
+          <img src="${user.avatar_url}" alt="프로필 사진">
+          <div>
+            <h2>${user.name ?? user.login}</h2>
+            <p>@${user.login}</p>
+            <p>${user.bio ?? "소개가 없습니다."}</p>
+          </div>
+        </div>
+        <div class="stats">
+          <div><strong>${user.public_repos}</strong><span>저장소</span></div>
+          <div><strong>${user.followers}</strong><span>팔로워</span></div>
+          <div><strong>${user.following}</strong><span>팔로잉</span></div>
+        </div>
+      `;
+
+      // ?? 는 null/undefined 일 때만 오른쪽 값을 씁니다. (02번 파일 참고)
+      // 실제 API 데이터에는 비어 있는 필드가 흔합니다. 항상 대비하세요.
+    }
+
+
+    // =============================================================
+    // 3. 둘을 연결 - 상태 표시가 핵심입니다
+    // =============================================================
+
+    async function search() {
+      const username = idInput.value.trim();
+
+      if (username === "") {
+        result.innerHTML = `<p class="error">아이디를 입력해 주세요.</p>`;
+        return;
+      }
+
+      // ⭐ 비동기 작업 중에는 반드시 "기다리는 중"임을 보여줘야 합니다.
+      //    안 그러면 사용자는 눌렀는데 아무 반응이 없다고 느낍니다.
+      result.innerHTML = `<p class="loading">불러오는 중...</p>`;
+      searchBtn.disabled = true;      // 중복 클릭 방지
+
+      try {
+        const user = await fetchUser(username);
+        showUser(user);
+      } catch (error) {
+        // 네트워크 끊김, 404 등 모든 에러가 여기로 옵니다.
+        result.innerHTML = `<p class="error">${error.message}</p>`;
+        console.error(error);
+      } finally {
+        // 성공하든 실패하든 버튼은 반드시 다시 살려야 합니다.
+        // finally 가 없으면 에러 한 번에 버튼이 영영 잠깁니다.
+        searchBtn.disabled = false;
+      }
+    }
+
+
+    // =============================================================
+    // 4. 이벤트 연결
+    // =============================================================
+
+    searchBtn.addEventListener("click", search);
+
+    idInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") search();
+    });
+
+
+    // =============================================================
+    // 도전 과제
+    // =============================================================
+    //
+    // 1. 가입일(user.created_at)을 "2011년 1월 25일" 형태로 보여주세요.
+    //    (힌트: new Date(user.created_at).toLocaleDateString("ko-KR"))
+    //
+    // 2. 프로필 아래에 그 사람의 저장소 목록을 보여주세요.
+    //    주소: https://api.github.com/users/아이디/repos
+    //    (힌트: fetchUser 와 같은 방식으로 fetchRepos 를 만들고,
+    //           서로 의존하지 않으므로 Promise.all 로 동시에 가져오세요)
+    //
+    // 3. 저장소를 별(stargazers_count) 많은 순으로 정렬해 상위 5개만 보여주세요.
+    //
+    // 4. 검색 결과를 localStorage 에 저장해, 최근 검색한 아이디 5개를
+    //    버튼으로 보여주고 클릭하면 바로 검색되게 하세요.
+    //
+    // 5. (도전) 입력할 때마다 자동 검색되게 하되,
+    //    타이핑이 멈춘 뒤 0.5초 후에만 요청이 가도록 만드세요.
+    //    (디바운스 - setTimeout 과 clearTimeout 을 씁니다.
+    //     이걸 안 하면 한 글자마다 요청이 날아가 금방 403이 뜹니다)
+  </script>
+
+</body>
+</html>

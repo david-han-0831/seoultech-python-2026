@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<!--
+  자바스크립트 - 07. DOM 기초
+
+  파이썬으로는 할 수 없는 것, 바로 "웹 화면 조작"입니다.
+  이 파일을 브라우저로 열고 F12 → Console 을 함께 보면서 읽으세요.
+-->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOM 기초</title>
+  <style>
+    body {
+      font-family: "맑은 고딕", sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.7;
+    }
+    h1 { border-bottom: 2px solid #333; padding-bottom: 8px; }
+    section {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-right: 6px;
+    }
+    input {
+      padding: 8px;
+      font-size: 15px;
+      width: 200px;
+    }
+    .highlight { background: yellow; font-weight: bold; }
+    .item { padding: 4px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>DOM 기초 실습</h1>
+
+  <!-- ============================================================
+       1. 요소 선택하고 내용 바꾸기
+       ============================================================ -->
+  <section>
+    <h2>1. 내용 바꾸기</h2>
+    <p id="message">이 문장이 바뀔 예정입니다.</p>
+    <button id="changeBtn">문장 바꾸기</button>
+  </section>
+
+  <!-- ============================================================
+       2. 스타일 / 클래스 바꾸기
+       ============================================================ -->
+  <section>
+    <h2>2. 스타일 바꾸기</h2>
+    <p id="styleTarget">이 문장의 스타일이 바뀝니다.</p>
+    <button id="colorBtn">색 바꾸기</button>
+    <button id="toggleBtn">형광펜 켜기/끄기</button>
+  </section>
+
+  <!-- ============================================================
+       3. 입력값 읽기
+       ============================================================ -->
+  <section>
+    <h2>3. 입력값 읽기</h2>
+    <input type="text" id="nameInput" placeholder="이름을 입력하세요">
+    <button id="greetBtn">인사하기</button>
+    <p id="greetResult"></p>
+  </section>
+
+  <!-- ============================================================
+       4. 요소 추가하기
+       ============================================================ -->
+  <section>
+    <h2>4. 목록에 추가하기</h2>
+    <button id="addBtn">항목 추가</button>
+    <button id="clearBtn">전체 삭제</button>
+    <div id="list"></div>
+  </section>
+
+
+  <script>
+    // =============================================================
+    // DOM 이란?
+    // =============================================================
+    // 브라우저가 HTML을 읽어서 만든 "객체 트리"입니다.
+    // 자바스크립트는 이 트리를 읽고 고칠 수 있습니다.
+    // 그래서 화면이 새로고침 없이 바뀝니다.
+
+
+    // =============================================================
+    // 1. 요소 선택하기
+    // =============================================================
+
+    // document.querySelector( CSS선택자 )  ← 이거 하나만 알면 됩니다.
+    //   "#아이디"      → id 로 찾기
+    //   ".클래스"      → class 로 찾기
+    //   "p"           → 태그 이름으로 찾기
+    //   여러 개 찾으려면 querySelectorAll (결과는 배열 비슷한 것)
+
+    const message = document.querySelector("#message");
+    const changeBtn = document.querySelector("#changeBtn");
+
+    console.log(message);            // <p id="message">...</p>
+    console.log(message.textContent); // 이 문장이 바뀔 예정입니다.
+
+
+    // =============================================================
+    // 2. 이벤트 - "무슨 일이 일어나면 이 함수를 실행해"
+    // =============================================================
+
+    // 요소.addEventListener("이벤트이름", 실행할함수)
+
+    changeBtn.addEventListener("click", () => {
+      // textContent : 글자만 바꾸기 (안전, 기본으로 이걸 쓰세요)
+      message.textContent = "자바스크립트로 바꾼 문장입니다! " + new Date().toLocaleTimeString();
+    });
+
+    // 자주 쓰는 이벤트
+    //   click     클릭했을 때
+    //   input     입력할 때마다
+    //   change    값이 바뀌고 포커스가 빠졌을 때
+    //   submit    폼을 제출할 때
+    //   keydown   키를 눌렀을 때
+
+
+    // =============================================================
+    // 3. 스타일과 클래스
+    // =============================================================
+
+    const styleTarget = document.querySelector("#styleTarget");
+
+    document.querySelector("#colorBtn").addEventListener("click", () => {
+      // 직접 스타일 주기 (CSS 속성은 background-color → backgroundColor 로 씁니다)
+      styleTarget.style.color = "crimson";
+      styleTarget.style.fontSize = "20px";
+    });
+
+    document.querySelector("#toggleBtn").addEventListener("click", () => {
+      // 클래스 켜고 끄기 - 실무에서는 이 방식을 훨씬 많이 씁니다.
+      // 스타일은 CSS에 두고, JS는 클래스만 붙였다 뗍니다.
+      styleTarget.classList.toggle("highlight");
+    });
+
+    //   classList.add("클래스")      추가
+    //   classList.remove("클래스")   제거
+    //   classList.toggle("클래스")   있으면 빼고 없으면 넣기
+
+
+    // =============================================================
+    // 4. 입력값 읽기 - .value
+    // =============================================================
+
+    const nameInput = document.querySelector("#nameInput");
+    const greetResult = document.querySelector("#greetResult");
+
+    document.querySelector("#greetBtn").addEventListener("click", () => {
+      const name = nameInput.value;   // input 의 값은 .value 로 읽습니다
+
+      if (name.trim() === "") {
+        greetResult.textContent = "이름을 입력해 주세요.";
+        return;                       // 함수를 여기서 끝냄
+      }
+
+      greetResult.textContent = `안녕하세요, ${name}님!`;
+      nameInput.value = "";           // 입력창 비우기
+    });
+
+    // [주의] input 의 값은 숫자를 입력해도 항상 문자열입니다.
+    //        계산에 쓰려면 Number() 로 바꾸세요.
+
+    // Enter 키로도 되게 하기
+    nameInput.addEventListener("keydown", (event) => {
+      // event 객체에 어떤 키가 눌렸는지 등의 정보가 들어옵니다.
+      if (event.key === "Enter") {
+        document.querySelector("#greetBtn").click();
+      }
+    });
+
+
+    // =============================================================
+    // 5. 요소 만들고 붙이기
+    // =============================================================
+
+    const list = document.querySelector("#list");
+    let itemCount = 0;
+
+    document.querySelector("#addBtn").addEventListener("click", () => {
+      itemCount++;
+
+      // (1) 요소 만들기
+      const div = document.createElement("div");
+
+      // (2) 내용과 속성 채우기
+      div.textContent = `${itemCount}번째 항목`;
+      div.className = "item";
+
+      // (3) 화면에 붙이기  ← 이걸 해야 비로소 보입니다
+      list.appendChild(div);
+    });
+
+    document.querySelector("#clearBtn").addEventListener("click", () => {
+      list.innerHTML = "";   // 안을 통째로 비우기
+      itemCount = 0;
+    });
+
+
+    // =============================================================
+    // textContent vs innerHTML
+    // =============================================================
+    //
+    //   textContent : 글자로만 취급.  <b>굵게</b> → 화면에 그대로 <b>굵게</b>
+    //   innerHTML   : HTML로 해석.    <b>굵게</b> → 실제로 굵게
+    //
+    // innerHTML 은 편하지만, 사용자가 입력한 값을 그대로 넣으면
+    // 악성 스크립트가 실행될 수 있습니다 (XSS 취약점).
+    // 기본은 textContent, 꼭 필요할 때만 innerHTML 을 쓰세요.
+
+
+    // =============================================================
+    // 연습 문제
+    // =============================================================
+    //
+    // 1. "초기화" 버튼을 추가해, 1번 섹션의 문장을 원래대로 되돌리세요.
+    //
+    // 2. 색 바꾸기 버튼을 누를 때마다 빨강 → 파랑 → 검정 순으로
+    //    번갈아 바뀌도록 만드세요. (배열 + 인덱스를 쓰면 편합니다)
+    //
+    // 3. 입력창에 숫자 두 개를 받아 합을 보여주는 계산기를 만드세요.
+    //    (input 을 하나 더 추가해야 합니다. Number() 를 잊지 마세요)
+    //
+    // 4. 항목 추가 시 각 항목 옆에 "삭제" 버튼도 같이 만들어,
+    //    그 버튼을 누르면 해당 항목만 사라지게 하세요.
+    //    (힌트: div.remove() )
+    //
+    // 5. 입력창에 글자를 칠 때마다 (input 이벤트) 글자 수를 실시간으로 보여주세요.
+  </script>
+
+</body>
+</html>
